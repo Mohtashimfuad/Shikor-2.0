@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #123B32;
+  --color-secondary: #D8E8DF;
+  --color-background: #F5F1E8;
+  --color-accent: #C6A66B;
+  --color-surface: #FFFFFF;
+  --color-text: #1F2933;
+  --color-muted: #64748B;
+  --color-border: #D9E1DC;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #F5F1E8;
+  color: #1F2933;
+}
+
+.font-serif-title {
+  font-family: 'Playfair Display', 'Noto Serif Bengali', Georgia, serif;
+}
+
+.font-handwritten {
+  font-family: 'Caveat', cursive;
+}
+
+/* Custom smooth scroll and subtle paper texture look */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Map pulse keyframes */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}

@@ -1,0 +1,6 @@
+{
+  "name": "JomiTrace - River Erosion Land Loss Evidence & Resettlement Platform",
+  "description": "Citizen-powered digital evidence platform for river erosion land loss, satellite mouza overlay, land loss certificates, and automated khas land resettlement claims.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
