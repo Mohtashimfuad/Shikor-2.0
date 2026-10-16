@@ -1,20 +1,29 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Shikor (শিকড়)
 
-# Run and deploy your AI Studio app
+Digital land-loss evidence platform for river-erosion-affected families in Bangladesh.
+Built for the DIU CSE-TECH Landtech Hackathon (Team LA-23, Land Records track).
 
-This contains everything you need to run your app locally.
+## The problem
+River erosion in char areas submerges land every year. Families lose their land
+but have no verifiable proof of loss or past possession, which blocks claims
+for khas land allocation.
 
-View your app in AI Studio: https://ai.studio/apps/c225175b-a435-4c20-a614-7ab4bb9b0081
+## What Shikor does
+- Citizens file an erosion claim with Khatian/Dag details and geotagged photo evidence
+- Community witnesses attest to possession
+- Satellite water-index (Sentinel-2 NDWI) check supports the claim
+- A Land Loss Certificate with QR code and SHA-256 hash is generated for AC Land / UNO review
 
-## Run Locally
+## Tech stack
+React, TypeScript, Vite, Tailwind CSS, Leaflet, Supabase (PostgreSQL, PostGIS, Storage)
 
-**Prerequisites:**  Node.js
+## Run locally
+Prerequisite: Node.js
 
+1. `npm install`
+2. `npm run dev`
+3. Open the app, click the Supabase button, and enter your Project URL and anon key
+4. Run `supabase_schema.sql` in the Supabase SQL Editor
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Team
+Team LA-23
