@@ -1,27 +1,19 @@
-export type PageView = 'home' | 'signin' | 'signup' | 'evidence' | 'satellite' | 'claims' | 'about' | 'profile';
+export type PageView =
+  | 'home'
+  | 'signin'
+  | 'signup'
+  | 'evidence'
+  | 'satellite'
+  | 'claims'
+  | 'about'
+  | 'profile'
+  | 'officer-register'
+  | 'officer-status'
+  | 'officer-dashboard'
+  | 'admin-dashboard'
+  | 'account-activation';
 
 export type Language = 'en' | 'bn';
-
-export interface UserSession {
-  role: 'citizen' | 'official';
-  fullNameEn: string;
-  fullNameBn: string;
-  nidNumber: string;
-  phone: string;
-  email?: string;
-  district?: string;
-  upazila?: string;
-  union?: string;
-  mouza?: string;
-  khatianNo?: string;
-  dagNo?: string;
-  lostArea?: number;
-  submersionYear?: number;
-  riverName?: string;
-  trackingId?: string;
-  loginMethod?: 'password' | 'otp' | 'demo';
-  registeredAt?: string;
-}
 
 export interface PilotUpazila {
   id: string;
@@ -41,7 +33,6 @@ export interface LandLossRecord {
   trackingId: string;
   ownerName: string;
   ownerBanglaName: string;
-  nidNumber: string;
   district: string;
   upazila: string;
   union: string;
@@ -64,7 +55,6 @@ export interface LandLossRecord {
 export interface ClaimApplication {
   id: string;
   claimantName: string;
-  claimantNid: string;
   targetOffice: string; // e.g., "Office of the Assistant Commissioner (Land), Chilmari, Kurigram"
   subject: string;
   actSection: string; // "State Acquisition and Tenancy Act 1950 (Section 86/87)"

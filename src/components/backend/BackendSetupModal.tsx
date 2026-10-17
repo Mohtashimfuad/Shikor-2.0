@@ -46,92 +46,11 @@ export const BackendSetupModal: React.FC<BackendSetupModalProps> = ({
 
   const isConnected = isSupabaseConfigured();
 
-  const SQL_MIGRATION = `-- 1. Enable PostGIS Extension
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 2. User Profiles Table
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('citizen', 'surveyor', 'ac_land_official', 'uno')),
-  full_name_en TEXT NOT NULL,
-  full_name_bn TEXT,
-  phone_number TEXT UNIQUE NOT NULL,
-  nid_number TEXT UNIQUE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 3. High-Risk River Erosion Plots & Claims
-CREATE TABLE IF NOT EXISTS public.erosion_claims (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tracking_id TEXT UNIQUE NOT NULL,
-  claimant_id UUID REFERENCES public.profiles(id),
-  district TEXT NOT NULL,
-  upazila TEXT NOT NULL,
-  union_name TEXT NOT NULL,
-  mouza_name TEXT NOT NULL,
-  jl_number TEXT NOT NULL,
-  khatian_no TEXT NOT NULL,
-  dag_no TEXT NOT NULL,
-  total_area_acre NUMERIC(6,3) NOT NULL,
-  submerged_area_acre NUMERIC(6,3) NOT NULL,
-  erosion_year INT NOT NULL,
-  river_basin TEXT NOT NULL,
-  centroid_point GEOMETRY(Point, 4326),
-  satellite_match_rate NUMERIC(5,2) DEFAULT 0.0,
-  is_satellite_verified BOOLEAN DEFAULT FALSE,
-  status TEXT DEFAULT 'witness_confirmed',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Geotagged Phone Camera Media
-CREATE TABLE IF NOT EXISTS public.claim_media (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  claim_id UUID REFERENCES public.erosion_claims(id) ON DELETE CASCADE,
-  media_type TEXT CHECK (media_type IN ('image', 'video', 'tax_receipt')),
-  storage_path TEXT NOT NULL,
-  exif_lat NUMERIC(10,7),
-  exif_lng NUMERIC(10,7),
-  sha256_hash TEXT NOT NULL,
-  uploaded_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 5. Community Witnesses (Proof of Prior Possession)
-CREATE TABLE IF NOT EXISTS public.claim_witnesses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  claim_id UUID REFERENCES public.erosion_claims(id) ON DELETE CASCADE,
-  witness_name TEXT NOT NULL,
-  relation_or_designation TEXT NOT NULL,
-  attestation_signature_hash TEXT NOT NULL,
-  attested_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 6. Verifiable Land Loss Certificates
-CREATE TABLE IF NOT EXISTS public.loss_certificates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  claim_id UUID UNIQUE REFERENCES public.erosion_claims(id) ON DELETE CASCADE,
-  certificate_number TEXT UNIQUE NOT NULL,
-  qr_verification_code TEXT NOT NULL,
-  spectral_water_index NUMERIC(4,2),
-  cryptographic_hash TEXT NOT NULL,
-  issued_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 7. Enable RLS and Policies safely
-ALTER TABLE public.erosion_claims ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Claims" ON public.erosion_claims;
-CREATE POLICY "Public Read Claims" ON public.erosion_claims FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Public Insert Claims" ON public.erosion_claims;
-CREATE POLICY "Public Insert Claims" ON public.erosion_claims FOR INSERT WITH CHECK (true);
-
-ALTER TABLE public.loss_certificates ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Certificates" ON public.loss_certificates;
-CREATE POLICY "Public Read Certificates" ON public.loss_certificates FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Public Insert Certificates" ON public.loss_certificates;
-CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSERT WITH CHECK (true);
-`;
+  const SQL_MIGRATION = `-- Phase 1 schema is managed in reviewed repository migrations.
+-- Apply supabase/migrations/ in filename order using the Supabase migration workflow.
+-- The connected Shikor project already has profiles and land-record tables.
+-- This browser panel does not create duplicate tables or policies.
+-- Never restore public claim or citizen-evidence policies.`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(SQL_MIGRATION);
@@ -258,10 +177,9 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
                   1
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-[#123B32]">Create a Free Project on Supabase</h4>
+                  <h4 className="font-bold text-[#123B32]">{language === 'bn' ? 'বিদ্যমান Supabase প্রজেক্ট ব্যবহার করুন' : 'Use the Existing Supabase Project'}</h4>
                   <p className="text-xs text-[#64748B]">
-                    Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-emerald-700 font-bold underline inline-flex items-center gap-1">supabase.com <ExternalLink className="w-3 h-3" /></a> and sign in with GitHub or Google.
-                    Click <strong>"New Project"</strong>, set the Name to <code>shikor-landtech</code>, create a secure database password, and select Region: <strong>Singapore (ap-southeast-1)</strong> (closest to Bangladesh).
+                    {language === 'bn' ? 'Shikor-এর বর্তমান Supabase প্রজেক্টে সংযোগ দিন। নতুন প্রজেক্ট বা ডুপ্লিকেট টেবিল তৈরি করবেন না।' : 'Connect to Shikor’s current Supabase project. Do not create another project or duplicate tables.'}
                   </p>
                 </div>
               </div>
@@ -272,10 +190,9 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
                   2
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-[#123B32]">Run the Shikor SQL Migration</h4>
+                  <h4 className="font-bold text-[#123B32]">{language === 'bn' ? 'পর্যালোচিত Phase 1 migration ব্যবহার করুন' : 'Use the Reviewed Phase 1 Migration'}</h4>
                   <p className="text-xs text-[#64748B]">
-                    In your Supabase Dashboard, click <strong>"SQL Editor"</strong> in the left sidebar.
-                    Click <strong>"New query"</strong>, switch to Tab 2 (above) to copy our pre-built SQL code, paste it into the editor, and click <strong>"Run"</strong>. This enables PostGIS and creates all 5 tables in 3 seconds!
+                    {language === 'bn' ? 'Phase 1 migration বর্তমান Shikor ডাটাবেসে প্রয়োগ করা হয়েছে। নতুন পরিবেশে repository-এর supabase/migrations ফাইলগুলো ক্রমানুসারে চালান; পুরোনো inline SQL ব্যবহার করবেন না।' : 'The Phase 1 migration is applied to the current Shikor database. For a fresh environment, run the repository’s supabase/migrations in order; do not use the legacy inline SQL.'}
                   </p>
                 </div>
               </div>
@@ -302,7 +219,7 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
                 <div className="space-y-1">
                   <h4 className="font-bold text-[#123B32]">Connect and Test Live!</h4>
                   <p className="text-xs text-[#64748B]">
-                    Switch to Tab 3 <strong>"Connect API Keys"</strong>, paste both values, and click <strong>"Test Connection"</strong>. Your app will automatically switch from demo state to writing live records into your real database!
+                    Switch to <strong>"Connect API Keys"</strong>, paste the public project URL and anon key, and click <strong>"Test Connection"</strong>. The app keeps private data behind Supabase Auth and database policies.
                   </p>
                 </div>
               </div>
@@ -314,7 +231,7 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
                 onClick={() => setActiveTab('sql')}
                 className="bg-[#123B32] hover:bg-[#0c2822] text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
               >
-                Go to Step 2: Copy SQL Script →
+                View Phase 1 Migration →
               </button>
             </div>
 
@@ -326,8 +243,8 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
           <div className="p-6 sm:p-8 space-y-4 max-h-[65vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-sm text-[#123B32]">PostgreSQL & PostGIS Database Script</h4>
-                <p className="text-[11px] text-[#64748B]">Paste this into Supabase SQL Editor and click "Run".</p>
+                <h4 className="font-bold text-sm text-[#123B32]">Phase 1 Database Migration</h4>
+                <p className="text-[11px] text-[#64748B]">Use the reviewed repository migrations. This panel does not create tables or policies.</p>
               </div>
 
               <button
@@ -335,7 +252,7 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
                 className="bg-[#123B32] hover:bg-[#0c2822] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#C6A66B]" />}
-                <span>{copied ? 'Copied to Clipboard!' : 'Copy SQL Script'}</span>
+                <span>{copied ? 'Copied migration note' : 'Copy Migration Note'}</span>
               </button>
             </div>
 
@@ -344,12 +261,12 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
             </div>
 
             <div className="pt-2 flex justify-between items-center text-xs">
-              <span className="text-[#64748B]">After running this in Supabase, configure your private storage:</span>
+              <span className="text-[#64748B]">Officer and citizen Storage policies are included in the migration.</span>
               <button
                 onClick={() => setActiveTab('storage')}
                 className="bg-[#D8E8DF] hover:bg-[#c6ded0] text-[#123B32] font-bold px-4 py-2 rounded-lg border border-[#a8cfb9] transition-colors"
               >
-                Step 3: Storage RLS Policies →
+                View Storage Security →
               </button>
             </div>
           </div>
@@ -360,90 +277,33 @@ CREATE POLICY "Public Insert Certificates" ON public.loss_certificates FOR INSER
           <div className="p-6 sm:p-8 space-y-4 max-h-[65vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-sm text-[#123B32]">Private Storage Bucket RLS Policies</h4>
+                <h4 className="font-bold text-sm text-[#123B32]">{language === 'bn' ? 'ব্যক্তিগত Storage নীতিমালা' : 'Private Storage Bucket RLS Policies'}</h4>
                 <p className="text-[11px] text-[#64748B]">
-                  Run this in Supabase SQL Editor to allow photo/video uploads into your private <code>citizen-evidence</code> bucket.
+                  {language === 'bn' ? 'পর্যালোচিত ডাটাবেস মাইগ্রেশনে প্রবেশাধিকার নির্ধারিত। এখানে কোনো Public Storage policy যোগ করবেন না।' : 'Access is configured by the reviewed database migration; do not add public Storage policies here.'}
                 </p>
               </div>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`-- 1. Ensure Bucket Exists (Private: public = false)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('citizen-evidence', 'citizen-evidence', false)
-ON CONFLICT (id) DO UPDATE SET public = false;
-
--- 2. Drop existing policies if any to avoid duplicates
-DROP POLICY IF EXISTS "Allow public upload to citizen-evidence" ON storage.objects;
-DROP POLICY IF EXISTS "Allow reading citizen-evidence" ON storage.objects;
-DROP POLICY IF EXISTS "Allow updates on citizen-evidence" ON storage.objects;
-
--- 3. Policy: Allow uploading files to 'citizen-evidence'
-CREATE POLICY "Allow public upload to citizen-evidence"
-ON storage.objects FOR INSERT
-TO public, anon, authenticated
-WITH CHECK (bucket_id = 'citizen-evidence');
-
--- 4. Policy: Allow reading files from 'citizen-evidence'
-CREATE POLICY "Allow reading citizen-evidence"
-ON storage.objects FOR SELECT
-TO public, anon, authenticated
-USING (bucket_id = 'citizen-evidence');
-
--- 5. Policy: Allow updating files in 'citizen-evidence'
-CREATE POLICY "Allow updates on citizen-evidence"
-ON storage.objects FOR UPDATE
-TO public, anon, authenticated
-USING (bucket_id = 'citizen-evidence');`);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2500);
-                }}
-                className="bg-[#123B32] hover:bg-[#0c2822] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#C6A66B]" />}
-                <span>{copied ? 'Copied to Clipboard!' : 'Copy Storage SQL'}</span>
-              </button>
             </div>
 
-            <div className="bg-neutral-900 text-neutral-100 p-4 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[250px] shadow-inner leading-relaxed border border-neutral-700">
-              <pre>{`-- 1. Ensure Bucket Exists (Private: public = false)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('citizen-evidence', 'citizen-evidence', false)
-ON CONFLICT (id) DO UPDATE SET public = false;
+            <div className="bg-neutral-900 text-neutral-100 p-4 rounded-xl font-mono text-[11px] overflow-x-auto shadow-inner leading-relaxed border border-neutral-700">
+              <pre>{`Bucket: officer-appointment-letters (private)
+Access: applicant to own application, Admin to review
+Limit: 10 MB, PDF / JPEG / PNG / WebP
 
--- 2. Drop existing policies if any
-DROP POLICY IF EXISTS "Allow public upload to citizen-evidence" ON storage.objects;
-DROP POLICY IF EXISTS "Allow reading citizen-evidence" ON storage.objects;
-DROP POLICY IF EXISTS "Allow updates on citizen-evidence" ON storage.objects;
+Bucket: citizen-evidence (private)
+Access: claim owner or authorized Admin
 
--- 3. Policy: Allow uploading files
-CREATE POLICY "Allow public upload to citizen-evidence"
-ON storage.objects FOR INSERT
-TO public, anon, authenticated
-WITH CHECK (bucket_id = 'citizen-evidence');
-
--- 4. Policy: Allow reading files
-CREATE POLICY "Allow reading citizen-evidence"
-ON storage.objects FOR SELECT
-TO public, anon, authenticated
-USING (bucket_id = 'citizen-evidence');
-
--- 5. Policy: Allow updating files
-CREATE POLICY "Allow updates on citizen-evidence"
-ON storage.objects FOR UPDATE
-TO public, anon, authenticated
-USING (bucket_id = 'citizen-evidence');`}</pre>
+No public Storage policy is required.`}</pre>
             </div>
 
             <div className="bg-[#D8E8DF]/60 p-3 rounded-lg border border-[#b2cfbe] text-xs text-[#123B32] space-y-1">
-              <span className="font-bold block">🔒 How Private Bucket Security Works:</span>
+              <span className="font-bold block">{language === 'bn' ? '🔒 ব্যক্তিগত Bucket নিরাপত্তা:' : '🔒 How Private Bucket Security Works:'}</span>
               <p className="text-[11px] leading-relaxed">
-                Because your bucket is <strong>Private</strong>, anyone without permission is blocked. Shikor automatically creates <strong>2-hour temporary Signed URLs</strong> when viewing certificates so citizen land photos and documents stay 100% private and protected!
+                {language === 'bn' ? 'নিয়োগপত্র ব্যক্তিগত থাকে। ডাটাবেস অনুমোদনের পর Admin পর্যালোচনার জন্য অল্প সময়ের signed URL তৈরি হয়।' : 'Appointment letters stay private. Admin review creates a short-lived signed URL only after database authorization.'}
               </p>
             </div>
 
             <div className="pt-2 flex justify-between items-center text-xs">
-              <span className="text-[#64748B]">After running the storage SQL, connect your credentials:</span>
+              <span className="text-[#64748B]">Connect the public project URL and anon key:</span>
               <button
                 onClick={() => setActiveTab('connect')}
                 className="bg-[#123B32] hover:bg-[#0c2822] text-white font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"

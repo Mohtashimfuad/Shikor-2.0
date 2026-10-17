@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { PageView, Language, LandLossRecord, UserSession } from './types';
+import React, { useCallback, useRef, useState } from 'react';
+import { PageView, Language, LandLossRecord } from './types';
 import { SAMPLE_LOSS_RECORDS, SAMPLE_CLAIM } from './data/mockData';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { HeroSection } from './components/landing/HeroSection';
@@ -23,66 +24,134 @@ import { CitizenProfileView } from './components/views/CitizenProfileView';
 import { CertificateModal } from './components/certificate/CertificateModal';
 import { ClaimDraftModal } from './components/claim/ClaimDraftModal';
 import { BackendSetupModal } from './components/backend/BackendSetupModal';
+import { OfficerRegistrationView } from './components/officer/OfficerRegistrationView';
+import { OfficerStatusView } from './components/officer/OfficerStatusView';
+import { OfficerDashboardView } from './components/officer/OfficerDashboardView';
+import { AdminOfficerApplicationsView } from './components/admin/AdminOfficerApplicationsView';
+import { AccountActivationView } from './components/auth/AccountActivationView';
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageView>('home');
-  const [language, setLanguage] = useState<Language>('en');
-  
-  // Persisted Authenticated User Session
-  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+const SUPPORTED_PAGES: PageView[] = ['home', 'signin', 'signup', 'evidence', 'satellite', 'claims', 'about', 'profile', 'officer-register', 'officer-status', 'officer-dashboard', 'admin-dashboard', 'account-activation'];
+
+function getPageFromUrl(): PageView {
+  const requestedPage = new URLSearchParams(window.location.search).get('page');
+  return SUPPORTED_PAGES.includes(requestedPage as PageView) ? requestedPage as PageView : 'home';
+}
+
+// ---------------------------------------------------------------------------
+// Inner app — reads auth from context (must be inside AuthProvider)
+// ---------------------------------------------------------------------------
+function AppInner() {
+  const { profile, loading, signOut } = useAuth();
+
+  const [currentPage, setCurrentPageState] = useState<PageView>(getPageFromUrl);
+  const currentPageRef = useRef(currentPage);
+  const setCurrentPage = useCallback((pageOrUpdater: React.SetStateAction<PageView>) => {
+    const target = typeof pageOrUpdater === 'function' ? pageOrUpdater(currentPageRef.current) : pageOrUpdater;
+    if (target === currentPageRef.current) return;
+
+    window.history.pushState({ page: target }, '', `/?page=${target}`);
+    currentPageRef.current = target;
+    setCurrentPageState(target);
+  }, []);
+  const redirectTo = useCallback((target: PageView) => {
+    window.history.replaceState({ page: target }, '', `/?page=${target}`);
+    currentPageRef.current = target;
+    setCurrentPageState(target);
+  }, []);
+  const [language, setLanguage] = useState<Language>(() => {
     try {
-      const saved = localStorage.getItem('shikor_current_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
+      const savedLanguage = localStorage.getItem('shikor_language');
+      return savedLanguage === 'en' || savedLanguage === 'bn' ? savedLanguage : 'bn';
+    } catch {
+      return 'bn';
     }
   });
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    try {
-      localStorage.removeItem('shikor_current_user');
-    } catch (e) {
-      // ignore
-    }
-    setCurrentPage('home');
-  };
-  
   // Modal states
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [isBackendSetupOpen, setIsBackendSetupOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<LandLossRecord>(SAMPLE_LOSS_RECORDS[0]);
 
-  // Scroll to top whenever page view changes
+  // Scroll to top on page change
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentPage]);
 
-  const handleOpenCertificate = (record?: LandLossRecord) => {
-    if (record) {
-      setSelectedRecord(record);
-    } else {
-      setSelectedRecord(SAMPLE_LOSS_RECORDS[0]);
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const page = getPageFromUrl();
+      currentPageRef.current = page;
+      setCurrentPageState(page);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('shikor_language', language);
+    } catch {
+      // Language remains available in memory if browser storage is disabled.
     }
+  }, [language]);
+
+  // Route guard: redirect to sign-in for protected pages when not logged in
+  React.useEffect(() => {
+    const protectedPages: PageView[] = ['profile', 'claims', 'officer-status', 'officer-dashboard', 'admin-dashboard'];
+    if (!loading && !profile && protectedPages.includes(currentPage)) {
+      redirectTo('signin');
+    }
+    if (loading || !profile) return;
+    if (currentPage === 'profile' && profile.role !== 'citizen') {
+      redirectTo(profile.role === 'officer' ? 'officer-dashboard' : 'admin-dashboard');
+    }
+    if (currentPage === 'officer-dashboard' && profile.role !== 'officer') {
+      redirectTo(profile.role === 'citizen' ? 'officer-status' : 'home');
+    }
+    if (currentPage === 'admin-dashboard' && profile.role !== 'admin') redirectTo('home');
+    if (currentPage === 'officer-register' && profile.role !== 'citizen') {
+      redirectTo(profile.role === 'officer' ? 'officer-dashboard' : 'admin-dashboard');
+    }
+  }, [profile, loading, currentPage, redirectTo]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setCurrentPage('home');
+  };
+
+  const handleOpenCertificate = (record?: LandLossRecord) => {
+    setSelectedRecord(record ?? SAMPLE_LOSS_RECORDS[0]);
     setIsCertificateOpen(true);
   };
 
-  const handleSearch = (query: string) => {
-    // Navigate to evidence records view to show search results
+  const handleSearch = (_query: string) => {
     setCurrentPage('evidence');
   };
 
+  // Show nothing while the initial session check is in progress
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F1E8]">
+        <div className="text-center space-y-2">
+          <div className="w-10 h-10 border-4 border-[#123B32] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-[#64748B] font-medium">Loading session…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F1E8] text-[#1F2933]">
-      
+
       {/* Universal Top Navigation Header */}
       <Navbar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         language={language}
         setLanguage={setLanguage}
-        currentUser={currentUser}
+        currentUser={profile}
         onLogout={handleLogout}
         onOpenSearch={() => setCurrentPage('evidence')}
         onOpenBackendSetup={() => setIsBackendSetupOpen(true)}
@@ -92,42 +161,29 @@ export default function App() {
       <main className="flex-1">
         {currentPage === 'home' && (
           <>
-            {/* 1. Hero Section matching reference image */}
             <HeroSection
               language={language}
               onSearch={handleSearch}
               setCurrentPage={setCurrentPage}
               onOpenCertificateDemo={() => handleOpenCertificate()}
             />
-
-            {/* 2. 5-Feature Grid Cards matching reference image */}
             <FeatureCards
               language={language}
               setCurrentPage={setCurrentPage}
               onOpenCertificateDemo={() => handleOpenCertificate()}
               onOpenClaimDemo={() => setIsClaimOpen(true)}
             />
-
-            {/* 3. Real-Time Interactive High-Risk River Erosion Map Component */}
             <InteractiveErosionMap
               language={language}
               onOpenCertificateDemo={() => handleOpenCertificate()}
               onOpenClaimDemo={() => setIsClaimOpen(true)}
             />
-
-            {/* 4. Interactive Satellite & Mouza Overlay Evidence Lab */}
             <InteractiveEvidenceLab
               language={language}
               onOpenCertificateDemo={() => handleOpenCertificate()}
               onOpenClaimDemo={() => setIsClaimOpen(true)}
             />
-
-            {/* 5. Community Verification & Proof of Prior Possession */}
-            <CommunityProofSection
-              language={language}
-            />
-
-            {/* 6. About Shikor & Live Stats matching lower half of reference image */}
+            <CommunityProofSection language={language} />
             <AboutSection
               language={language}
               setCurrentPage={setCurrentPage}
@@ -140,10 +196,6 @@ export default function App() {
           <SignInPage
             language={language}
             setCurrentPage={setCurrentPage}
-            onSuccessLogin={(user) => {
-              setCurrentUser(user);
-              setCurrentPage('profile');
-            }}
           />
         )}
 
@@ -151,22 +203,36 @@ export default function App() {
           <SignUpPage
             language={language}
             setCurrentPage={setCurrentPage}
-            onRegisteredSuccess={(user) => {
-              if (user) setCurrentUser(user);
-              setCurrentPage('profile');
-            }}
           />
         )}
 
         {currentPage === 'profile' && (
           <CitizenProfileView
             language={language}
-            currentUser={currentUser}
+            currentUser={profile}
             onLogout={handleLogout}
             setCurrentPage={setCurrentPage}
-            onOpenCertificate={(rec) => handleOpenCertificate(rec)}
-            onOpenClaim={() => setIsClaimOpen(true)}
           />
+        )}
+
+        {currentPage === 'officer-register' && (
+          <OfficerRegistrationView language={language} currentUser={profile} setCurrentPage={setCurrentPage} />
+        )}
+
+        {currentPage === 'officer-status' && (
+          <OfficerStatusView language={language} currentUser={profile} setCurrentPage={setCurrentPage} />
+        )}
+
+        {currentPage === 'officer-dashboard' && profile?.role === 'officer' && (
+          <OfficerDashboardView language={language} currentUser={profile} setCurrentPage={setCurrentPage} />
+        )}
+
+        {currentPage === 'admin-dashboard' && profile?.role === 'admin' && (
+          <AdminOfficerApplicationsView language={language} currentUser={profile} />
+        )}
+
+        {currentPage === 'account-activation' && (
+          <AccountActivationView language={language} currentUser={profile} setCurrentPage={setCurrentPage} />
         )}
 
         {currentPage === 'evidence' && (
@@ -195,10 +261,7 @@ export default function App() {
         )}
 
         {currentPage === 'about' && (
-          <AboutRoadmapView
-            language={language}
-            setCurrentPage={setCurrentPage}
-          />
+          <AboutRoadmapView language={language} setCurrentPage={setCurrentPage} />
         )}
 
         {currentPage === 'claims' && (
@@ -206,11 +269,13 @@ export default function App() {
             <div className="max-w-4xl mx-auto px-4">
               <div className="bg-white rounded-2xl border border-[#D9E1DC] p-8 text-center space-y-4">
                 <h2 className="text-2xl font-bold font-serif-title text-[#123B32]">
-                  {language === 'bn' ? 'ইউএনও ও এসিল্যান্ড খাসজমি পুনর্বাসন আবেদন সেল' : 'UNO & AC Land Resettlement Claim Desk'}
+                  {language === 'bn'
+                    ? 'ইউএনও ও এসিল্যান্ড খাসজমি পুনর্বাসন আবেদন সেল'
+                    : 'UNO & AC Land Resettlement Claim Desk'}
                 </h2>
                 <p className="text-sm text-[#64748B] max-w-xl mx-auto">
-                  {language === 'bn' 
-                    ? 'চিলমারী ও কাজীপুর উপজেলার নদীভাঙনে ক্ষতিগ্রস্ত নাগরিকদের আবেদনের সরাসরি ডকেট।' 
+                  {language === 'bn'
+                    ? 'চিলমারী ও কাজীপুর উপজেলার নদীভাঙনে ক্ষতিগ্রস্ত নাগরিকদের আবেদনের সরাসরি ডকেট।'
                     : 'Submit your verifiable satellite evidence package directly to your local Upazila Land Office.'}
                 </p>
                 <div className="pt-2 flex justify-center gap-3">
@@ -233,13 +298,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Universal Footer matching reference image */}
-      <Footer
-        setCurrentPage={setCurrentPage}
-        language={language}
-      />
+      <Footer setCurrentPage={setCurrentPage} language={language} />
 
-      {/* Interactive Official Certificate Modal */}
       <CertificateModal
         isOpen={isCertificateOpen}
         onClose={() => setIsCertificateOpen(false)}
@@ -247,7 +307,6 @@ export default function App() {
         language={language}
       />
 
-      {/* Interactive AC Land Claim Draft Modal */}
       <ClaimDraftModal
         isOpen={isClaimOpen}
         onClose={() => setIsClaimOpen(false)}
@@ -255,13 +314,22 @@ export default function App() {
         language={language}
       />
 
-      {/* Interactive Supabase Backend Integration Assistant Modal */}
       <BackendSetupModal
         isOpen={isBackendSetupOpen}
         onClose={() => setIsBackendSetupOpen(false)}
         language={language}
       />
-
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Root export — wraps AppInner with AuthProvider
+// ---------------------------------------------------------------------------
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

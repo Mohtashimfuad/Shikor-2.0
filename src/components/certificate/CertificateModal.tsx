@@ -98,10 +98,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             {/* Main Descriptive Paragraph */}
             <div className="text-xs sm:text-sm text-[#1F2933] leading-relaxed mb-6 space-y-3 font-serif">
               <p>
-                This is to certify that <strong>{record.ownerName}</strong> ({record.ownerBanglaName}), 
-                holding National ID <strong>{record.nidNumber}</strong>, has been officially confirmed as the previous 
-                rightful possessor of the surveyed real estate parcel described below, which has suffered total physical 
-                loss due to aggressive riverbank erosion into the bed of the <strong>{record.riverBasin}</strong>.
+                This sample record contains information attributed to <strong>{record.ownerName}</strong> ({record.ownerBanglaName}).
+                It does not verify a government identity number or establish an official land decision. The parcel described below
+                is shown as an example of reported riverbank erosion in the <strong>{record.riverBasin}</strong> area.
               </p>
             </div>
 

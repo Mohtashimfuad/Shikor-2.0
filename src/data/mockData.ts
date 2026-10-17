@@ -69,7 +69,6 @@ export const SAMPLE_LOSS_RECORDS: LandLossRecord[] = [
     trackingId: 'SHK-KUR-2024-00284',
     ownerName: 'Md. Abdur Rahim Mondol',
     ownerBanglaName: 'মো: আব্দুর রহিম মন্ডল',
-    nidNumber: '19824915239004812',
     district: 'Kurigram',
     upazila: 'Chilmari',
     union: 'Raniganj',
@@ -93,7 +92,6 @@ export const SAMPLE_LOSS_RECORDS: LandLossRecord[] = [
     trackingId: 'SHK-SIR-2024-00519',
     ownerName: 'Mst. Rokeya Begum',
     ownerBanglaName: 'মোছা: রোকেয়া বেগম',
-    nidNumber: '19798812049182341',
     district: 'Sirajganj',
     upazila: 'Kazipur',
     union: 'Natuarpara',
@@ -117,7 +115,6 @@ export const SAMPLE_LOSS_RECORDS: LandLossRecord[] = [
     trackingId: 'SHK-SHA-2024-00142',
     ownerName: 'Kazi Faruk Ahmed',
     ownerBanglaName: 'কাজী ফারুক আহমেদ',
-    nidNumber: '19882619472019482',
     district: 'Shariatpur',
     upazila: 'Naria',
     union: 'Muktarter Char',
@@ -141,7 +138,6 @@ export const SAMPLE_LOSS_RECORDS: LandLossRecord[] = [
 export const SAMPLE_CLAIM: ClaimApplication = {
   id: 'claim-chilmari-01',
   claimantName: 'Md. Abdur Rahim Mondol (মো: আব্দুর রহিম মন্ডল)',
-  claimantNid: '19824915239004812',
   targetOffice: 'Office of the Assistant Commissioner (Land) & Upazila Nirbahi Officer, Chilmari, Kurigram',
   subject: 'Application for Khas Land Allocation / Resettlement due to River Erosion of Homestead and Farmland',
   actSection: 'State Acquisition and Tenancy Act 1950 (Section 86/87) & National Char Rehabilitation Policy',
@@ -152,7 +148,7 @@ Chilmari Upazila, Kurigram District, Bangladesh.
 Subject: Petition for Allotment of Resettlement Khas Land against Total River Erosion Inundation of Inherited Land (Dag #284, Mouza: Char Natundiar).
 
 Respected Sir/Madam,
-I, Md. Abdur Rahim Mondol, son of late Kashem Mondol, NID #19824915239004812, humbly submit that our generational residential homestead and agricultural plot measuring 0.58 Acres in Dag No. 284, Khatian RS-1102, Mouza Char Natundiar (JL #42) has been entirely engulfed and submerged into the bed of the Brahmaputra River during the severe monsoonal erosion of July 2022.
+I, Md. Abdur Rahim Mondol, son of late Kashem Mondol, humbly submit that our generational residential homestead and agricultural plot measuring 0.58 Acres in Dag No. 284, Khatian RS-1102, Mouza Char Natundiar (JL #42) has been entirely engulfed and submerged into the bed of the Brahmaputra River during the severe monsoonal erosion of July 2022.
 
 In support of this petition, I have generated and attached the Shikor Satellite-Verified Land Loss Certificate (Tracking ID: SHK-KUR-2024-00284) integrating historical Sentinel-2 surface water transitions with RS Mouza Georeference, along with 14 community geo-witness signatures.
 
@@ -164,7 +160,7 @@ Under Section 86 of the State Acquisition and Tenancy Act 1950 and the Governmen
 বিষয়: ব্রহ্মপুত্র নদের ভাঙনে বসতভিটা ও ফসলি জমি নদীগর্ভে বিলীন হওয়ায় পুনর্বাসনের নিমিত্তে ১-নং খাস খতিয়ানভুক্ত জমি বন্দোবস্তের আবেদন।
 
 মহোদয়,
-বিনীত নিবেদন এই যে, আমি নিম্নস্বাক্ষরকারী মো: আব্দুর রহিম মন্ডল, পিতা: মৃত কাশেম মন্ডল, জাতীয় পরিচয়পত্র নং: ১৯৮২৪৯১৫২৩৯০০৪৮১২। আমাদের বংশানুক্রমিক বসতভিটা ও ফসলি জমি (মৌজা: চর নতুনদিয়ার, জে.এল নং: ৪২, আর.এস খতিয়ান নং: ১১০২, দাগ নং: ২৮৪, মোট পরিমাপ: ০.৫৮ একর) ২০২২ সালের বন্যায় ব্রহ্মপুত্র নদের তীব্র ভাঙনে সম্পূর্ণ নদীগর্ভে বিলীন হয়ে গেছে।
+বিনীত নিবেদন এই যে, আমি নিম্নস্বাক্ষরকারী মো: আব্দুর রহিম মন্ডল, পিতা: মৃত কাশেম মন্ডল। আমাদের বংশানুক্রমিক বসতভিটা ও ফসলি জমি (মৌজা: চর নতুনদিয়ার, জে.এল নং: ৪২, আর.এস খতিয়ান নং: ১১০২, দাগ নং: ২৮৪, মোট পরিমাপ: ০.৫৮ একর) ২০২২ সালের বন্যায় ব্রহ্মপুত্র নদের তীব্র ভাঙনে সম্পূর্ণ নদীগর্ভে বিলীন হয়ে গেছে।
 
 উক্ত ভাঙন ও পূর্ববর্তী দখল প্রমাণের সপক্ষে শিকড় (Shikor) স্যাটেলাইট সেন্টিনেল-২ ও আর.এস মৌজা নকশা সম্বলিত ডিজিটাল "ভূমিহীন নদীভাঙন সনদ" (ট্র্যাকিং আইডি: SHK-KUR-2024-00284) এবং ১৪ জন স্থানীয় অধিবাসীর ডিজিটাল সাক্ষী প্রমাণ সংযুক্ত করা হলো।
 

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Scale, Search, Menu, X, Globe, ShieldCheck, User, LogOut } from 'lucide-react';
-import { PageView, Language, UserSession } from '../../types';
+import { PageView, Language } from '../../types';
+import type { AuthProfile } from '../../context/AuthContext';
 
 interface NavbarProps {
   currentPage: PageView;
   setCurrentPage: (page: PageView) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
-  currentUser?: UserSession | null;
+  currentUser?: AuthProfile | null;
   onLogout?: () => void;
   onOpenSearch?: () => void;
   onOpenBackendSetup?: () => void;
@@ -24,6 +25,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBackendSetup
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const accountPage: PageView = currentUser?.role === 'admin'
+    ? 'admin-dashboard'
+    : currentUser?.role === 'officer'
+      ? 'officer-dashboard'
+      : 'profile';
 
   const navItems: { id: PageView; labelEn: string; labelBn: string }[] = [
     { id: 'home', labelEn: 'Home', labelBn: 'মূলপাতা' },
@@ -118,27 +124,35 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* User Session Profile OR Login / Sign Up */}
             {currentUser ? (
               <div className="flex items-center space-x-2">
+                {currentUser.role === 'citizen' && (
+                  <button
+                    onClick={() => setCurrentPage('officer-register')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-full text-[#D8E8DF] border border-white/25 hover:bg-white/10"
+                  >
+                    {language === 'bn' ? 'অফিসার আবেদন' : 'Officer Registration'}
+                  </button>
+                )}
                 {/* Profile Pill Button */}
                 <button
-                  onClick={() => setCurrentPage('profile')}
+                  onClick={() => setCurrentPage(accountPage)}
                   className={`flex items-center space-x-2 pl-1.5 pr-3 py-1 rounded-full border transition-all duration-200 shadow-sm ${
-                    currentPage === 'profile'
+                    currentPage === accountPage
                       ? 'bg-white text-[#123B32] border-white ring-2 ring-[#C6A66B]'
                       : 'bg-[#1b4e43] border-[#C6A66B]/50 hover:border-[#C6A66B] text-white hover:bg-[#235e52]'
                   }`}
                   title={language === 'bn' ? 'আমার প্রোফাইল দেখুন' : 'View Citizen Profile'}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                    currentPage === 'profile' ? 'bg-[#123B32] text-white' : 'bg-[#C6A66B] text-[#123B32]'
+                    currentPage === accountPage ? 'bg-[#123B32] text-white' : 'bg-[#C6A66B] text-[#123B32]'
                   }`}>
-                    {currentUser.role === 'official' ? '🏛️' : (currentUser.fullNameEn ? currentUser.fullNameEn.charAt(0).toUpperCase() : 'U')}
+                    {currentUser.role !== 'citizen' ? '🏛️' : (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U')}
                   </div>
                   <div className="text-left">
                     <span className="block text-xs font-bold leading-tight max-w-[110px] truncate">
-                      {currentUser.fullNameEn.split(' ')[0]}
+                      {currentUser.displayName.split(' ')[0]}
                     </span>
                     <span className="block text-[9px] uppercase tracking-wider text-[#C6A66B] font-semibold">
-                      {currentUser.role === 'official' ? 'AC Land' : 'Citizen'}
+                      {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'officer' ? 'Officer' : 'Citizen'}
                     </span>
                   </div>
                 </button>
@@ -230,14 +244,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="p-3 rounded-xl bg-[#1b4e43] border border-[#C6A66B]/30 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-[#C6A66B] text-[#123B32] font-bold flex items-center justify-center text-sm">
-                      {currentUser.fullNameEn ? currentUser.fullNameEn.charAt(0).toUpperCase() : 'U'}
+                      {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white leading-tight">
-                        {currentUser.fullNameEn}
+                        {currentUser.displayName}
                       </p>
                       <p className="text-[10px] text-[#C6A66B]">
-                        {currentUser.role === 'official' ? 'AC Land Officer' : 'Citizen Landowner'}
+                        {currentUser.role === 'admin' ? 'Administrator' : currentUser.role === 'officer' ? 'Approved Officer' : 'Citizen'}
                       </p>
                     </div>
                   </div>
@@ -249,7 +263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => {
-                      setCurrentPage('profile');
+                      setCurrentPage(accountPage);
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-2 text-xs font-bold text-center rounded-lg bg-white text-[#123B32]"
@@ -266,6 +280,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {language === 'bn' ? 'লগআউট' : 'Sign Out'}
                   </button>
                 </div>
+                {currentUser.role === 'citizen' && (
+                  <button
+                    onClick={() => {
+                      setCurrentPage('officer-register');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full py-2 text-xs font-semibold text-center rounded-lg border border-[#C6A66B]/50 text-[#C6A66B]"
+                  >
+                    {language === 'bn' ? 'অফিসার নিবন্ধন' : 'Officer Registration'}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">

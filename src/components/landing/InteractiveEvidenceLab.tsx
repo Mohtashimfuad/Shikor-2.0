@@ -226,10 +226,6 @@ export const InteractiveEvidenceLab: React.FC<InteractiveEvidenceLabProps> = ({
                   <span className="font-bold">Md. Abdur Rahim Mondol</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-[#D9E1DC]">
-                  <span className="text-[#64748B]">NID Number:</span>
-                  <span className="font-mono">19824915239004812</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#D9E1DC]">
                   <span className="text-[#64748B]">Mouza / JL:</span>
                   <span className="font-medium">Char Natundiar (JL #42)</span>
                 </div>

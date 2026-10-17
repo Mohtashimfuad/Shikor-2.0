@@ -49,20 +49,11 @@ export const testSupabaseConnection = async (url: string, key: string): Promise<
     if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
       return { success: false, message: 'Invalid Supabase URL. Must be in the format: https://[project-ref].supabase.co' };
     }
-    const testClient = createClient(url, key);
-    const { error } = await testClient.from('erosion_claims').select('id').limit(1);
-    
-    if (error) {
-      if (error.code === '42P01') {
-        return { 
-          success: true, 
-          message: 'Connected to Supabase! Note: Please run the SQL migration to create the `erosion_claims` table.' 
-        };
-      }
-      return { success: false, message: `Connection error: ${error.message}` };
-    }
-
-    return { success: true, message: 'Successfully connected to your live Supabase database!' };
+    const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
+      headers: { apikey: key, Accept: 'application/openapi+json' },
+    });
+    if (!response.ok) return { success: false, message: 'Connection failed. Check the project URL and public anon key.' };
+    return { success: true, message: 'Supabase API is reachable. User data remains protected by authentication and database policies.' };
   } catch (err: any) {
     return { success: false, message: err?.message || 'Failed to connect to Supabase.' };
   }
@@ -72,7 +63,6 @@ export const testSupabaseConnection = async (url: string, key: string): Promise<
 export const submitErosionClaimToSupabase = async (formData: {
   fullNameEn: string;
   fullNameBn: string;
-  nidNumber: string;
   phone: string;
   district: string;
   upazila: string;
@@ -93,11 +83,19 @@ export const submitErosionClaimToSupabase = async (formData: {
   }
 
   try {
-    const trackingId = `SHK-${formData.district.slice(0, 3).toUpperCase()}-${new Date().getFullYear()}-${formData.dagNo.padStart(5, '0')}`;
-    const certHash = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return { success: false, error: 'A verified citizen account is required.' };
+    }
+    const { data: role, error: roleError } = await supabase.rpc('current_access_role');
+    if (roleError || role !== 'citizen') {
+      return { success: false, error: 'A verified citizen account is required.' };
+    }
 
+    const trackingId = `SHK-${formData.district.slice(0, 3).toUpperCase()}-${new Date().getFullYear()}-${formData.dagNo.padStart(5, '0')}`;
     const claimPayload = {
       tracking_id: trackingId,
+      claimant_id: authData.user.id,
       district: formData.district,
       upazila: formData.upazila,
       union_name: formData.union,
@@ -109,37 +107,23 @@ export const submitErosionClaimToSupabase = async (formData: {
       submerged_area_acre: Number(formData.lostArea),
       erosion_year: Number(formData.submersionYear),
       river_basin: formData.riverName,
-      satellite_match_rate: 99.4,
-      is_satellite_verified: true,
-      status: 'witness_confirmed'
     };
 
     const { data: claim, error: claimErr } = await supabase
       .from('erosion_claims')
       .insert(claimPayload)
-      .select()
+      .select('id, tracking_id, district, upazila, union_name, mouza_name, jl_number, khatian_no, dag_no, total_area_acre, submerged_area_acre, erosion_year, river_basin, created_at')
       .single();
 
     if (claimErr) {
-      console.error('Supabase insert error:', claimErr);
-      return { success: false, error: claimErr.message };
+      return { success: false, error: 'The claim could not be submitted.' };
     }
-
-    // Insert corresponding certificate
-    await supabase.from('loss_certificates').insert({
-      claim_id: claim.id,
-      certificate_number: `CERT-${trackingId}`,
-      qr_verification_code: `https://shikor.org/verify/${trackingId}`,
-      spectral_water_index: 0.88,
-      cryptographic_hash: certHash
-    });
 
     const formattedRecord: LandLossRecord = {
       id: claim.id,
       trackingId: claim.tracking_id,
       ownerName: formData.fullNameEn,
       ownerBanglaName: formData.fullNameBn,
-      nidNumber: formData.nidNumber,
       district: claim.district,
       upazila: claim.upazila,
       union: claim.union_name,
@@ -152,11 +136,11 @@ export const submitErosionClaimToSupabase = async (formData: {
       submersionYear: claim.erosion_year,
       riverBasin: claim.river_basin,
       gpsCoords: { lat: formData.lat || 25.5682, lng: formData.lng || 89.6741 },
-      status: 'Verified by Satellite',
-      satelliteSentinelMatch: 99.4,
-      witnessCount: 14,
-      certificateHash: certHash,
-      issuedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      status: 'Pending Community Endorsement',
+      satelliteSentinelMatch: 0,
+      witnessCount: 0,
+      certificateHash: '',
+      issuedDate: new Date(claim.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     };
 
     return { success: true, record: formattedRecord };
@@ -175,8 +159,13 @@ export const uploadCitizenMedia = async (
   }
 
   try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${claimId}/${Date.now()}_evidence.${fileExt}`;
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) return { success: false, error: 'A signed-in citizen account is required.' };
+    const { data: role, error: roleError } = await supabase.rpc('current_access_role');
+    if (roleError || role !== 'citizen') return { success: false, error: 'A signed-in citizen account is required.' };
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    const fileName = `${userData.user.id}/${claimId}/${Date.now()}_evidence.${fileExt}`;
 
     const { data: uploadData, error: uploadErr } = await supabase.storage
       .from('citizen-evidence')
@@ -215,7 +204,7 @@ export const fetchErosionClaimsFromSupabase = async (): Promise<LandLossRecord[]
   try {
     const { data, error } = await supabase
       .from('erosion_claims')
-      .select('*, loss_certificates(*)')
+      .select('id, tracking_id, district, upazila, union_name, mouza_name, jl_number, khatian_no, dag_no, total_area_acre, submerged_area_acre, erosion_year, river_basin, is_satellite_verified, satellite_match_rate, created_at, loss_certificates(cryptographic_hash)')
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) return null;
@@ -223,9 +212,8 @@ export const fetchErosionClaimsFromSupabase = async (): Promise<LandLossRecord[]
     return data.map((item: any) => ({
       id: item.id,
       trackingId: item.tracking_id,
-      ownerName: item.owner_name || 'Registered Landowner',
-      ownerBanglaName: item.owner_name_bn || 'নিবন্ধিত ভূমিমালিক',
-      nidNumber: item.nid_number || '19824915239004812',
+      ownerName: 'Registered Landowner',
+      ownerBanglaName: 'নিবন্ধিত ভূমিমালিক',
       district: item.district,
       upazila: item.upazila,
       union: item.union_name,
@@ -238,14 +226,14 @@ export const fetchErosionClaimsFromSupabase = async (): Promise<LandLossRecord[]
       submersionYear: item.erosion_year,
       riverBasin: item.river_basin,
       gpsCoords: { lat: 25.5682, lng: 89.6741 },
-      status: 'Verified by Satellite',
-      satelliteSentinelMatch: Number(item.satellite_match_rate) || 99.4,
-      witnessCount: 14,
-      certificateHash: item.loss_certificates?.[0]?.cryptographic_hash || '0x8f4d92a11b6c...93e1',
+      status: item.is_satellite_verified ? 'Verified by Satellite' : 'Pending Community Endorsement',
+      satelliteSentinelMatch: item.is_satellite_verified ? Number(item.satellite_match_rate) || 0 : 0,
+      witnessCount: 0,
+      certificateHash: item.loss_certificates?.[0]?.cryptographic_hash || '',
       issuedDate: new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     }));
   } catch (err) {
-    console.error('Error fetching claims from Supabase:', err);
+    // Keep private claim details and backend errors out of browser logs.
     return null;
   }
 };
